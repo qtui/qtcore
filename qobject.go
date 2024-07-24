@@ -1,6 +1,10 @@
 package qtcore
 
-import "github.com/qtui/qtrt"
+import (
+	"github.com/kitech/gopp/cgopp"
+	"github.com/qtui/qtclzsz"
+	"github.com/qtui/qtrt"
+)
 
 type QObject struct {
 	*qtrt.CObject
@@ -32,8 +36,11 @@ func (me *QObject) SetObjectName(name string) {
 	qtrt.Callany[int](me, name)
 }
 func (me *QObject) ObjectName() string {
-	rv := qtrt.Callany[voidptr](me)
-	return QStringFromptr(rv).ToUtf8().ConstData()
+	cthis := cgopp.Malloc(qtclzsz.Get("QString"))
+	qtrt.CallanyRov[int](cthis, me)
+	qstr := QStringFromptr(cthis)
+	defer qstr.Dtor()
+	return qstr.ToUtf8().ConstData()
 }
 
 func (me *QObject) Parent() *QObject {
