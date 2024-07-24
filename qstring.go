@@ -16,7 +16,7 @@ func QStringFromptr(ptr voidptr) *QString {
 }
 
 func (me *QString) Dtor() {
-	qtrt.Callany[int](nil, me)
+	qtrt.Callany[int](me)
 }
 
 // 静态方法，并且返回ROV!!!
@@ -25,14 +25,14 @@ func QString_FromUtf8(s string) *QString {
 	rovp := cgopp.Malloc(clzsz) // todo when to free
 	_ = rovp
 
-	rv := qtrt.Callany[int](rovp, nil, s, len(s))
+	rv := qtrt.CallanyRov[int](rovp, nil, s, len(s))
 	// log.Println(rv.Ptr(), s)
 	_ = rv
 	return QStringFromptr(rovp)
 }
 func (me *QString) ToUtf8() *QByteArray {
 	rovp := cgopp.Malloc(qtclzsz.Get("QByteArray"))
-	qtrt.Callany[int](rovp, me)
+	qtrt.CallanyRov[int](rovp, me)
 	return QByteArrayFromptr(rovp)
 }
 
@@ -54,12 +54,12 @@ func (me *QByteArray) Dtor() {
 	qtrt.Callany[int](nil, me)
 }
 func (me *QByteArray) ConstData() string {
-	rvo := qtrt.Callany[voidptr](nil, me)
+	rvo := qtrt.Callany[voidptr](me)
 	rv := cgopp.GoString(rvo)
 	return rv
 }
 func (me *QByteArray) Length() int {
-	rvo := qtrt.Callany[int](nil, me)
+	rvo := qtrt.Callany[int](me)
 	return rvo
 }
 
@@ -82,25 +82,25 @@ func NewQVariant[T any](vx T) *QVariant {
 }
 
 func newQVariant(vx any) *QVariant {
-	rvo := qtrt.Callany[voidptr](nil, nil, vx)
+	rvo := qtrt.Callany[voidptr](nil, vx)
 	return QVariantFromptr(rvo)
 }
 
 func (me *QVariant) ToInt() int {
-	rvo := qtrt.Callany[int](nil, me, nil)
+	rvo := qtrt.Callany[int](me, nil)
 	return rvo
 }
 func (me *QVariant) ToLongLong() int64 {
-	rvo := qtrt.Callany[int64](nil, me, nil)
+	rvo := qtrt.Callany[int64](me, nil)
 	return rvo
 }
 func (me *QVariant) ToReal() float64 {
-	rvo := qtrt.Callany[float64](nil, me, nil)
+	rvo := qtrt.Callany[float64](me, nil)
 	return rvo
 }
 func (me *QVariant) ToString() string {
 	rovp := cgopp.Malloc(qtclzsz.Get("QString"))
-	qtrt.Callany[int](rovp, me)
+	qtrt.CallanyRov[int](rovp, me)
 
 	qstr := QStringFromptr(rovp)
 	defer qstr.Dtor()

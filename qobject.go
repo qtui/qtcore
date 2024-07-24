@@ -11,6 +11,10 @@ func QObjectFromptr(ptr voidptr) *QObject {
 	return me
 }
 
+func (me *QObject) SetCthis(ptr voidptr) {
+	me.CObject = qtrt.CObjectFromptr(ptr)
+}
+
 func (me *QObject) ObjectName() string {
 
 	return ""
