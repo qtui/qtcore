@@ -1,10 +1,13 @@
 package qtcore
 
 import (
+	"github.com/kitech/gopp"
 	"github.com/kitech/gopp/cgopp"
 	"github.com/qtui/qtclzsz"
 	"github.com/qtui/qtrt"
 )
+
+// 这个文件是非QObject的, QString, QVariant, QUrl
 
 type QString struct {
 	*qtrt.CObject
@@ -155,4 +158,19 @@ func (me *QAnyStringView) Data() voidptr {
 	// rv := qtrt.Callany[voidptr](me)
 	// return rv
 	return me.Ptr
+}
+
+type QUrl struct {
+	*qtrt.CObject
+}
+
+func QUrlFromptr(ptr voidptr) *QUrl {
+	return &QUrl{qtrt.CObjectFromptr(ptr)}
+}
+
+func (me *QUrl) Dtor() { qtrt.Callany0(me) }
+
+func NewQUrl(u string, mode ...int) *QUrl {
+	rv := qtrt.Callany[voidptr](nil, u, gopp.FirstofGv(mode))
+	return QUrlFromptr(rv)
 }
