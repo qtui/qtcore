@@ -112,3 +112,47 @@ func (me *QVariant) ToString() string {
 
 	return rv
 }
+
+// 一般用作传递参数，而且是以结构体的形式传递，而不是引用或者指针传递
+// 看了一没有引用和指针的用法，全是QAnyStringView传递，这里也可以不用指针了
+// 注意字符串引用，不拷贝
+// 难道和go的string结构体相同了？确认确实结构相同了!!!
+type QAnyStringView struct {
+	Ptr voidptr
+	Len usize
+}
+
+// type QAnyStringViewITF interface {
+// 	QAnyStringViewPTR() *QAnyStringView
+// }
+
+// func (me *QAnyStringView) QAnyStringViewITF() *QAnyStringView { return me }
+
+// func QAnyStringViewFromptr(ptr voidptr) *QAnyStringView {
+// 	return &QAnyStringView{ptr, 0}
+// }
+
+func NewQAnyStringView(s string) *QAnyStringView {
+	// QAnyStringView::QAnyStringView<char, true>(char const*, long long)
+	// symname := "__ZN14QAnyStringViewC2IcLb1EEEPKT_x" // template
+	// fnsym := qtrt.GetQtSymAddr(symname)
+	// cthis := cgopp.Malloc(qtclzsz.Get("QAnyStringView"))
+	// s4c := cgopp.string
+	// cgopp.FfiCall[int](cthis)
+	ptr := (voidptr)(&s)
+	// return QAnyStringViewFromptr(ptr)
+	return (*QAnyStringView)(ptr)
+}
+
+// type QAnyStringView2 string
+
+func (me *QAnyStringView) Size() int {
+	// rv := qtrt.Callany[int](me)
+	// return rv
+	return int(me.Len)
+}
+func (me *QAnyStringView) Data() voidptr {
+	// rv := qtrt.Callany[voidptr](me)
+	// return rv
+	return me.Ptr
+}

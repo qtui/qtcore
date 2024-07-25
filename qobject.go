@@ -1,6 +1,7 @@
 package qtcore
 
 import (
+	"github.com/kitech/gopp"
 	"github.com/kitech/gopp/cgopp"
 	"github.com/qtui/qtclzsz"
 	"github.com/qtui/qtrt"
@@ -32,7 +33,14 @@ func (me *QObject) SetCthis(ptr voidptr) {
 	me.CObject = qtrt.CObjectFromptr(ptr)
 }
 
+// 使用QAnyStringView优化版本
+// 不需要new QString, delete QString
 func (me *QObject) SetObjectName(name string) {
+	//  symname := "__ZN7QObject13setObjectNameE14QAnyStringView"
+	name4purego := Fatptrof(&name)
+	qtrt.Callany[int](me, name4purego)
+}
+func (me *QObject) SetObjectNamez2(name string) {
 	qtrt.Callany[int](me, name)
 }
 func (me *QObject) ObjectName() string {
@@ -56,6 +64,36 @@ func (me *QObject) Inherits(classname string) bool {
 func (me *QObject) dynamicMetaObject() *QMetaObject {
 	rv := qtrt.Callany[voidptr](me)
 	return QMetaObjectFromptr(rv)
+}
+
+type Fatptr64 struct {
+	H int64
+	L int64
+}
+type Fatptr32 struct {
+	H int32
+	L int32
+}
+
+// purego传递结构做，变长的类型不行
+func Fatptrof[T any](ptr *T) any {
+	var rv any
+	if gopp.UintptrTySz == 4 {
+		rv = *((*Fatptr32)(voidptr(ptr)))
+	} else {
+		rv = *((*Fatptr64)(voidptr(ptr)))
+	}
+	return rv
+}
+
+func (me *QObject) FindChild(objname string) *QObject {
+	// QObject* QObject::findChild<QObject*>(QAnyStringView, QFlags<Qt::FindChildOption>) const
+	symname := "__ZNK7QObject9findChildIPS_EET_14QAnyStringView6QFlagsIN2Qt15FindChildOptionEE"
+	fnsym := qtrt.GetQtSymAddr(symname)
+	// objname4c := NewQAnyStringView(objname)
+	var objname4c = Fatptrof(&objname)
+	rv := cgopp.FfiCall[voidptr](fnsym, me.GetCthis(), objname4c, Qt__FindChildrenRecursively)
+	return QObjectFromptr(rv)
 }
 
 // ///
