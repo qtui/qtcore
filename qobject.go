@@ -1,6 +1,9 @@
 package qtcore
 
 import (
+	"fmt"
+	"runtime"
+
 	"github.com/kitech/gopp"
 	"github.com/kitech/gopp/cgopp"
 	"github.com/qtui/qtclzsz"
@@ -33,6 +36,22 @@ func (me *QObject) SetCthis(ptr voidptr) {
 	me.CObject = qtrt.CObjectFromptr(ptr)
 }
 
+func (me *QObject) SetProperty(name string, valx any) bool {
+	// valx => QVariant&
+	qvar := newQVariant(valx)
+	defer qvar.Dtor()
+	rv := qtrt.Callany[bool](me, name, qvar)
+	return rv
+}
+func (me *QObject) Property(name string) *QVariant {
+	rovp := cgopp.Mallocpg(qtclzsz.Get("QVariant"))
+	qtrt.CallanyRov[int](rovp, me, name)
+	qvar := QVariantFromptr(rovp)
+
+	runtime.SetFinalizer(qvar, QVariantDtor)
+	return qvar
+}
+
 // 使用QAnyStringView优化版本
 // 不需要new QString, delete QString
 func (me *QObject) SetObjectName(name string) {
@@ -61,9 +80,18 @@ func (me *QObject) Inherits(classname string) bool {
 	return rv
 }
 
-func (me *QObject) dynamicMetaObject() *QMetaObject {
+func (me *QObject) MetaObject() *QMetaObject {
 	rv := qtrt.Callany[voidptr](me)
 	return QMetaObjectFromptr(rv)
+}
+
+func (me *QObject) Dbgstr() string {
+	// ptr: %p, class: %s, name: %s
+	mo := me.MetaObject()
+	clzname := mo.ClassName()
+	objname := me.ObjectName()
+	s := fmt.Sprintf("QObject {ptr: %v, class: %v, name: %v}", me.GetCthis(), clzname, objname)
+	return s
 }
 
 type Fatptr64 struct {
@@ -103,4 +131,14 @@ type QMetaObject struct {
 
 func QMetaObjectFromptr(ptr voidptr) *QMetaObject {
 	return &QMetaObject{qtrt.CObjectFromptr(ptr)}
+}
+
+func (me *QMetaObject) ClassName() string {
+	rv := qtrt.Callany[voidptr](me)
+	return cgopp.GoString(rv)
+}
+
+func (me *QMetaObject) SuperClass() *QMetaObject {
+	rv := qtrt.Callany[voidptr](me)
+	return QMetaObjectFromptr(rv)
 }
