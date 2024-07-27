@@ -86,11 +86,11 @@ func (me *QObject) MetaObject() *QMetaObject {
 }
 
 func (me *QObject) Dbgstr() string {
-	// ptr: %p, class: %s, name: %s
+	// goptr: %p, ptr: %p, class: %s, name: %s
 	mo := me.MetaObject()
 	clzname := mo.ClassName()
 	objname := me.ObjectName()
-	s := fmt.Sprintf("QObject {ptr: %v, class: %v, name: %v}", me.GetCthis(), clzname, objname)
+	s := fmt.Sprintf("QObject(%p){ptr: %v, class: %v, name: %v}", me, me.GetCthis(), clzname, objname)
 	return s
 }
 

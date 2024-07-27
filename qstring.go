@@ -1,6 +1,8 @@
 package qtcore
 
 import (
+	"unsafe"
+
 	"github.com/kitech/gopp"
 	"github.com/kitech/gopp/cgopp"
 	"github.com/qtui/qtclzsz"
@@ -42,7 +44,7 @@ func (me *QString) ToUtf8() *QByteArray {
 }
 
 func (me *QString) Length() int {
-	rv := qtrt.Callany[int](nil, me)
+	rv := qtrt.Callany[int](me)
 	return rv
 }
 
@@ -119,6 +121,11 @@ func (me *QVariant) ToString() string {
 
 	return rv
 }
+func (me *QVariant) ToPtr() voidptr {
+	sym := qtrt.GetQtSymAddr("QVariantToptr")
+	rv := cgopp.Litfficallg(sym, me.Cthis)
+	return rv
+}
 
 // 一般用作传递参数，而且是以结构体的形式传递，而不是引用或者指针传递
 // 看了一没有引用和指针的用法，全是QAnyStringView传递，这里也可以不用指针了
@@ -177,4 +184,60 @@ func (me *QUrl) Dtor() { qtrt.Callany0(me) }
 func NewQUrl(u string, mode ...int) *QUrl {
 	rv := qtrt.Callany[voidptr](nil, u, gopp.FirstofGv(mode))
 	return QUrlFromptr(rv)
+}
+
+// qt 的 QList<T> 和 go 的 slice 组织方式类似
+// 可以使用 go slice 的方式取元素指针，但是需要元素的大小
+// 如果给的元素大小不正确，则结果是未定义的
+// 目前只支持读取，不支持改动。
+// 适用于qt6，其他版本暂未测试
+type QListin struct {
+	QTypedArrayData voidptr // meta data, omit here
+	Ptr             voidptr
+	Len             usize
+}
+
+type QList struct {
+	*qtrt.CObject // *QListin
+}
+
+func QListFromptr(ptr voidptr) *QList {
+	return &QList{qtrt.CObjectFromptr(ptr)}
+}
+
+func (me *QList) Size() int {
+	x := (*QListin)(me.GetCthis())
+	return int(x.Len)
+}
+
+func (me *QList) GetQListin() *QListin {
+	x := (*QListin)(me.GetCthis())
+	return x
+}
+
+func (me *QList) QStringAt(idx int) *QString {
+	itemsz := qtclzsz.Get("QString")
+
+	objptr := me.ElemAtBySize(idx, itemsz)
+	return QStringFromptr(objptr)
+}
+func (me *QList) QVariantAt(idx int) *QVariant {
+	itemsz := qtclzsz.Get("QVariant")
+	objptr := me.ElemAtBySize(idx, itemsz)
+	return QVariantFromptr(objptr)
+}
+func (me *QList) QObjectAt(idx int) voidptr {
+	itemsz := int(unsafe.Sizeof(usize(0)))
+	objptr := me.ElemAtBySize(idx, itemsz)
+	return objptr
+}
+
+// 通用方法
+func (me *QList) ElemAtBySize(idx int, elemsz int) voidptr {
+	in := me.GetQListin()
+
+	itemsz := elemsz
+	slc := (*[1 << 20]byte)(in.Ptr)
+	objptr := (voidptr)(&slc[idx*itemsz])
+	return objptr
 }
