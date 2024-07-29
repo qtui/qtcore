@@ -1,6 +1,8 @@
 package qtcore
 
 import (
+	"runtime"
+
 	"github.com/kitech/gopp/cgopp"
 	"github.com/qtui/qtclzsz"
 	"github.com/qtui/qtrt"
@@ -78,7 +80,29 @@ func QColor_FromString(name string) QColor {
 
 func QColor_ColorNames() *QList {
 	rovp := cgopp.Mallocpg(qtclzsz.Get("QList"))
-	rv := qtrt.CallanyRov[voidptr](rovp, nil)
+	rvx := qtrt.CallanyRov[voidptr](rovp, nil)
 
-	return QListFromptr(rv)
+	rv := QListFromptr(rvx)
+	runtime.SetFinalizer(rv, QStringListDtor)
+	return rv
 }
+
+type QPoint struct {
+}
+type QPointF struct {
+}
+
+type QWindow struct {
+	*QObject
+}
+type QWindowITF interface {
+	QWindowPTR() *QWindow
+}
+
+func (me *QWindow) QWindowPTR() *QWindow { return me }
+
+func QWindowFromptr(ptr voidptr) *QWindow {
+	return &QWindow{QObjectFromptr(ptr)}
+}
+
+func (me *QWindow) Show() { qtrt.Callany0(me) }

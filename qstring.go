@@ -95,6 +95,12 @@ func newQVariant(vx any) *QVariant {
 	return QVariantFromptr(rv)
 }
 
+func (me *QVariant) TypeId() int { return qtrt.Callany[int](me) }
+func (me *QVariant) TypeName() string {
+	rv := qtrt.Callany[voidptr](me)
+	return cgopp.GoString(rv)
+}
+
 func (me *QVariant) ToInt() int {
 	rv := qtrt.Callany[int](me, nil)
 	return rv
@@ -186,6 +192,15 @@ func NewQUrl(u string, mode ...int) *QUrl {
 	return QUrlFromptr(rv)
 }
 
+// todo
+func (me *QUrl) Url() string {
+	rovp := cgopp.Mallocpg(qtclzsz.Get("QString"))
+	qtrt.CallanyRov[int](rovp, me, 0)
+	qstr := QStringFromptr(rovp)
+	defer qstr.Dtor()
+	return qstr.ToUtf8().ConstData()
+}
+
 // qt 的 QList<T> 和 go 的 slice 组织方式类似
 // 可以使用 go slice 的方式取元素指针，但是需要元素的大小
 // 如果给的元素大小不正确，则结果是未定义的
@@ -203,6 +218,20 @@ type QList struct {
 
 func QListFromptr(ptr voidptr) *QList {
 	return &QList{qtrt.CObjectFromptr(ptr)}
+}
+func (me *QList) Dtor() { QListDtor(me) }
+
+// todo how
+func QListDtor(me *QList) {}
+func QStringListDtor(me *QList) {
+	name := "__ZN5QListI7QStringED2Ev_weakwrap"
+	fnadr := qtrt.GetQtSymAddr(name)
+	cgopp.FfiCall[int](fnadr, me.GetCthis())
+}
+func QObjectListDtor(me *QList) {
+	name := "__ZN5QListIP7QObjectED2Ev_weakwrap"
+	fnadr := qtrt.GetQtSymAddr(name)
+	cgopp.FfiCall[int](fnadr, me.GetCthis())
 }
 
 func (me *QList) Size() int {

@@ -87,6 +87,9 @@ func (me *QObject) MetaObject() *QMetaObject {
 
 func (me *QObject) Dbgstr() string {
 	// goptr: %p, ptr: %p, class: %s, name: %s
+	if me.GetCthis() == nil {
+		return fmt.Sprintf("QObject(nil)")
+	}
 	mo := me.MetaObject()
 	clzname := mo.ClassName()
 	objname := me.ObjectName()
