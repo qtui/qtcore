@@ -6,6 +6,7 @@ import (
 	"github.com/kitech/gopp/cgopp"
 	"github.com/qtui/qtclzsz"
 	"github.com/qtui/qtrt"
+	"github.com/qtui/qtsyms"
 )
 
 type QCoreApplication struct {
@@ -88,4 +89,16 @@ func (me *QDesktopServices_) OpenUrl(u string) {
 func QDesktopServices_openUrl(u string) {
 	uo := NewQUrl(u)
 	qtrt.Callany0(nil, uo)
+}
+
+func (me *QDesktopServices_) OpenUrly1(u string) {
+	// 临时注册符号
+	qtsyms.Addsymrawline("", "0x123 T __ZN4QUrlC1ERK7QStringNS_11ParsingModeE")
+	qtsyms.Addsymrawline("", "0x123 T __ZN4QUrlD1Ev")
+	// QDesktopServices_openUrl(u)
+	name := "__ZN16QDesktopServices7openUrlERK4QUrl"
+	sym := qtrt.GetQtSymAddr(name)
+	uo := NewQUrl(u)
+	defer uo.Dtor()
+	cgopp.FfiCall[int](sym, uo.GetCthis())
 }

@@ -1,12 +1,14 @@
 package qtcore
 
 import (
+	"log"
 	"unsafe"
 
 	"github.com/kitech/gopp"
 	"github.com/kitech/gopp/cgopp"
 	"github.com/qtui/qtclzsz"
 	"github.com/qtui/qtrt"
+	"github.com/qtui/qtsyms"
 )
 
 // 这个文件是非QObject的, QString, QVariant, QUrl
@@ -46,6 +48,99 @@ func (me *QString) ToUtf8() *QByteArray {
 func (me *QString) Length() int {
 	rv := qtrt.Callany[int](me)
 	return rv
+}
+
+// 方法作为结构体成员的方式
+// 这种方式无法自动推导方法名字，
+// 但有个好处就是在不想自动生成加载所有符号表数据时(减少一些内存)，可以用上
+// 方法实现需要给出要调用的symbol字符串
+type QStringm struct {
+	// *qtrt.CObject
+
+	Length func(cobj voidptr) int
+	ToUtf8 func() *QByteArray
+}
+
+var _QStringmts *QStringm
+
+func QStringmtsGet() *QStringm {
+	if _QStringmts != nil {
+		return _QStringmts
+	}
+	me := &QStringm{}
+	me.Length = func(cobj voidptr) int {
+		rv := Callcc[int]("__ZNK7QString6lengthEv", 0, false, cobj)
+		return rv
+	}
+	me.ToUtf8 = func() *QByteArray { return nil }
+	_QStringmts = me
+	return me
+}
+
+// 支持纯C函数，条件demangle失败，并且能够查找到符号，并且cobj==nil
+// 当为ctor时，rovsz必须>0
+func Callcc[RTY any](name string, rovsz int, isst bool, cobj voidptr, args ...any) (rv RTY) {
+	signt, dmok := qtsyms.Demangle(name)
+	fnadr := qtrt.GetQtSymAddr(name)
+	var ispurecfn bool
+	if !dmok {
+		if fnadr != nil && cobj == nil {
+			// pure C function?
+			ispurecfn = true
+		} else {
+			// some error
+			gopp.FalsePrint(dmok, "demangle error", name)
+			return
+		}
+	}
+	clz, mth := qtsyms.SplitMethod(signt)
+	isctor := clz == mth
+	isdtor := "~"+clz == mth || mth == "Dtor"
+
+	// check some
+	if isctor && rovsz <= 0 {
+		log.Println("ctor no clzsz/rovsz", rovsz, name)
+	}
+	if isdtor && cobj == nil {
+		log.Println("dtor no cobj", cobj, name)
+	}
+
+	// call begin
+	var argspp []any // prepened
+	var rovp voidptr
+	if rovsz > 0 {
+		rovp = cgopp.Mallocpg(rovsz)
+		argspp = append(argspp, rovp)
+	}
+
+	// prepend args
+	if ispurecfn {
+	} else if isst {
+	} else if isctor {
+		cobj = cgopp.Mallocpg(rovsz)
+		rv = any(cobj).(RTY)
+		argspp = append(argspp, cobj)
+	} else if isdtor {
+		argspp = append(argspp, cobj)
+	} else {
+		argspp = append(argspp, cobj)
+	}
+
+	var argscc []any
+	if len(argspp) > 0 {
+		argscc = append(argscc, argspp)
+		if len(args) > 0 {
+			argscc = append(argscc, args)
+		}
+	} else {
+		argscc = args
+	}
+
+	// prepare args done, callit
+	rv2 := cgopp.FfiCall[RTY](fnadr, argscc)
+	rv = rv2
+
+	return
 }
 
 // ////
